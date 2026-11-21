@@ -1,0 +1,62 @@
+# Χτίζει το APK στο σύννεφο του GitHub κάθε φορά που ανεβαίνει κώδικας.
+# Το έτοιμο APK μπαίνει στη σελίδα «Releases» του repo, έτοιμο για κατέβασμα από το κινητό.
+name: Build APK
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Εγκατάσταση πακέτων
+        run: npm ci
+
+      - name: Τεστ λογικής (GPS, γύροι, sectors)
+        run: node tests/core.test.mjs
+
+      - name: Δημιουργία Android έργου
+        run: npx expo prebuild --platform android --no-install
+
+      - name: Χτίσιμο APK
+        working-directory: android
+        run: ./gradlew assembleRelease --no-daemon -PreactNativeArchitectures=arm64-v8a,armeabi-v7a
+
+      - name: Μετονομασία
+        run: |
+          mkdir -p out
+          cp android/app/build/outputs/apk/release/app-release.apk out/KartCoach-${{ github.run_number }}.apk
+
+      - name: Ανέβασμα ως artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: KartCoach-apk
+          path: out/*.apk
+
+      - name: Δημοσίευση στα Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ github.run_number }}
+          name: Kart Coach — έκδοση ${{ github.run_number }}
+          body: |
+            Κατέβασε το αρχείο .apk από το κινητό και άνοιξέ το για εγκατάσταση.
+          files: out/*.apk
+          make_latest: true

@@ -1,24 +1,37 @@
 {
   "expo": {
-    "name": "kart-coach",
+    "name": "Kart Coach",
     "slug": "kart-coach",
     "version": "1.0.0",
-    "orientation": "portrait",
+    "orientation": "default",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "backgroundColor": "#111418",
     "ios": {
       "supportsTablet": true
     },
     "android": {
+      "package": "com.christospat.kartcoach",
+      "versionCode": 1,
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "WAKE_LOCK"
+      ],
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#111418",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       }
     },
-    "web": {
-      "favicon": "./assets/favicon.png"
-    }
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Το Kart Coach χρησιμοποιεί το GPS για να χαρτογραφεί την πίστα και να μετρά τους γύρους σου."
+        }
+      ],
+      "expo-screen-orientation"
+    ]
   }
 }
