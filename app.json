@@ -31,7 +31,13 @@
           "locationWhenInUsePermission": "Το Kart Coach χρησιμοποιεί το GPS για να χαρτογραφεί την πίστα και να μετρά τους γύρους σου."
         }
       ],
-      "expo-screen-orientation"
+      "expo-screen-orientation",
+      [
+        "expo-navigation-bar",
+        {
+          "hidden": true
+        }
+      ]
     ]
   }
 }
