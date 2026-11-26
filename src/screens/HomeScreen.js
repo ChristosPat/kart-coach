@@ -37,7 +37,7 @@ export default function HomeScreen({ nav }) {
           nav.push('Timing', { trackId: track.id });
         })}
       />
-      <BigButton label="Ιστορικό" onPress={() => nav.push('History', { level: 'tracks' })} />
+      <BigButton label="Ιστορικό" onPress={() => nav.push('History')} />
       <Notice visible={!!msg} message={msg} onClose={() => setMsg(null)} />
     </Screen>
   );
