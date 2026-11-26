@@ -45,13 +45,18 @@ jobs:
           mkdir -p out
           cp android/app/build/outputs/apk/release/app-release.apk out/KartCoach-${{ github.run_number }}.apk
 
+      # 📦 Δοκιμαστικό κουτί: γίνεται ΠΑΝΤΑ (και από branch).
+      # Το βρίσκεις στο Actions → στο build → κάτω κάτω «Artifacts» (κατεβαίνει ως .zip).
       - name: Ανέβασμα ως artifact
         uses: actions/upload-artifact@v4
         with:
-          name: KartCoach-apk
+          name: KartCoach-${{ github.ref_name }}-${{ github.run_number }}
           path: out/*.apk
 
+      # 🏪 Βιτρίνα: γίνεται ΜΟΝΟ από το main (τελικές εκδόσεις).
+      # Ο «φύλακας» if: ρωτά «είναι αυτό το main;»
       - name: Δημοσίευση στα Releases
+        if: github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: build-${{ github.run_number }}
