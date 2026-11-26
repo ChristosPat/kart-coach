@@ -1,13 +1,14 @@
 // 5. Ιστορικό σαν μπαμπούσκες: Πίστα → Ημερομηνία → Session.
 import React, { useEffect, useState } from 'react';
-import { Text, Pressable, ScrollView, View } from 'react-native';
-import { Screen, Title, BigButton, s, C } from '../ui';
+import { Text, Pressable, View } from 'react-native';
+import { Screen, Title, BigButton, List, useLandscape, s, C } from '../ui';
 import { getSessions, getTracks, formatDay } from '../storage';
 import { formatTime } from '../core/timing';
 import { bestLap } from './SummaryScreen';
 
 export default function HistoryScreen({ nav, params }) {
   const [sessions, setSessions] = useState(null);
+  const land = useLandscape();
   const [names, setNames] = useState({});
 
   useEffect(() => {
@@ -73,9 +74,9 @@ export default function HistoryScreen({ nav, params }) {
   }
 
   return (
-    <Screen>
+    <Screen scroll={land}>
       <Title sub={sub}>{title}</Title>
-      <ScrollView style={{ flex: 1 }}>
+      <List>
         {items.length === 0 ? <Text style={s.empty}>Δεν υπάρχουν χρόνοι ακόμα.</Text> : null}
         {items.map((it) => (
           <Pressable key={it.key} onPress={it.onPress} style={({ pressed }) => [s.item, pressed && { opacity: 0.7 }]}>
@@ -83,7 +84,7 @@ export default function HistoryScreen({ nav, params }) {
             {it.detail ? <Text style={{ color: C.dim, fontSize: 16, marginTop: 4 }}>{it.detail}</Text> : null}
           </Pressable>
         ))}
-      </ScrollView>
+      </List>
       <View>
         <BigButton label="Πίσω" onPress={() => nav.pop()} />
       </View>

@@ -1,7 +1,7 @@
 // Σύνοψη session: μόνο οι γύροι. Ίδια οθόνη στο τέλος του session και στο Ιστορικό.
 import React, { useEffect, useState } from 'react';
-import { Text, View, ScrollView } from 'react-native';
-import { Screen, BigButton, C } from '../ui';
+import { Text, View } from 'react-native';
+import { Screen, BigButton, List, useLandscape, C } from '../ui';
 import { getSessions, formatDay } from '../storage';
 import { formatTime } from '../core/timing';
 
@@ -13,6 +13,7 @@ export function bestLap(session) {
 
 export default function SummaryScreen({ nav, params }) {
   const [session, setSession] = useState(null);
+  const land = useLandscape();
 
   useEffect(() => {
     getSessions().then((all) => setSession(all.find((x) => x.id === params.sessionId) || null));
@@ -22,7 +23,7 @@ export default function SummaryScreen({ nav, params }) {
   const best = bestLap(session);
 
   return (
-    <Screen>
+    <Screen scroll={land}>
       <Text style={{ color: C.text, fontSize: 26, fontWeight: '800' }}>
         SESSION {session.number} — {session.trackName}
       </Text>
@@ -35,7 +36,7 @@ export default function SummaryScreen({ nav, params }) {
         Καλύτερος: {formatTime(best.time)} ({best.n})
       </Text>
       <View style={{ height: 1, backgroundColor: C.line, marginBottom: 6 }} />
-      <ScrollView style={{ flex: 1 }}>
+      <List>
         {session.laps.map((l) => (
           <View key={l.n} style={{ flexDirection: 'row', paddingVertical: 8, borderBottomWidth: 1, borderColor: C.line }}>
             <Text style={{ color: C.dim, fontSize: 22, width: 50 }}>{l.n}</Text>
@@ -44,7 +45,7 @@ export default function SummaryScreen({ nav, params }) {
             </Text>
           </View>
         ))}
-      </ScrollView>
+      </List>
       <BigButton label="Αναλυτικά" onPress={() => nav.push('Analytic', { sessionId: session.id })} />
       {params.fromHistory ? (
         <BigButton label="Πίσω" onPress={() => nav.pop()} />

@@ -21,7 +21,7 @@ export default function HomeScreen({ nav }) {
   };
 
   return (
-    <Screen>
+    <Screen scroll>
       <View style={{ alignItems: 'center', marginTop: 20, marginBottom: 30 }}>
         <Text style={{ color: C.accent, fontSize: 40, fontWeight: '900', letterSpacing: 2 }}>KART COACH</Text>
         {track ? (

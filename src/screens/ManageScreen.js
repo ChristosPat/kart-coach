@@ -25,7 +25,7 @@ export default function ManageScreen({ nav, params }) {
 
   if (!track) return <Screen />;
   return (
-    <Screen>
+    <Screen scroll>
       <Title sub={`Πίστα: ${track.name}`}>Διαχείριση</Title>
       <BigButton label="Όνομα" onPress={() => { setName(track.name); setRenaming(true); }} />
       <BigButton label="Γραμμές" onPress={() => nav.push('Lines', { trackId: track.id })} />
@@ -33,7 +33,7 @@ export default function ManageScreen({ nav, params }) {
       <View style={{ flex: 1 }} />
       <BigButton label="Πίσω" onPress={() => nav.home()} />
 
-      <Modal visible={renaming} transparent animationType="fade" onRequestClose={() => setRenaming(false)}>
+      <Modal visible={renaming} transparent animationType="fade" onRequestClose={() => setRenaming(false)} supportedOrientations={['portrait', 'landscape']}>
         <View style={s.backdrop}>
           <View style={s.dialog}>
             <Text style={s.dTitle}>Νέο όνομα</Text>

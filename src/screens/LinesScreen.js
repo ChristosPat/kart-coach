@@ -29,8 +29,10 @@ const pts = (arr, v) => arr.map((p) => { const q = v.toScreen(p); return `${q.x}
 
 export default function LinesScreen({ nav, params }) {
   const { width, height } = useWindowDimensions();
-  const W = width - 36;
-  const H = Math.max(260, height - 330);
+  const land = width > height; // ξαπλωμένο κινητό
+  // Όρθιο: χάρτης σε όλο το πλάτος. Ξαπλωτό: χάρτης αριστερά σε όλο το ύψος, κουμπιά δεξιά.
+  const W = land ? Math.round(width * 0.6) : width - 36;
+  const H = land ? height - 48 : Math.max(260, height - 330);
   const [track, setTrack] = useState(null);
   const [draft, setDraft] = useState(null); // { start, sectors, direction }
   const [zoom, setZoom] = useState(1);
@@ -170,9 +172,10 @@ export default function LinesScreen({ nav, params }) {
     );
   };
 
-  return (
-    <Screen>
-      <Text style={{ color: C.text, fontSize: 22, fontWeight: '800', marginBottom: 6 }}>Γραμμές — {track.name}</Text>
+  const title = (
+    <Text style={{ color: C.text, fontSize: 22, fontWeight: '800', marginBottom: 6 }}>Γραμμές — {track.name}</Text>
+  );
+  const map = (
       <View
         style={{ width: W, height: H, backgroundColor: '#0B0E11', borderRadius: 12, overflow: 'hidden' }}
         {...responder.panHandlers}
@@ -190,6 +193,9 @@ export default function LinesScreen({ nav, params }) {
           ) : null}
         </Svg>
       </View>
+  );
+  const controls = (
+    <>
       <Text style={{ color: C.dim, fontSize: 14, marginVertical: 6 }}>
         Ακούμπα σημείο · 2 δάχτυλα για ζουμ · σύρε για μετακίνηση
       </Text>
@@ -206,6 +212,26 @@ export default function LinesScreen({ nav, params }) {
         </View>
       )}
       <BigButton label="Ολοκλήρωση" color={C.green} onPress={finish} />
+    </>
+  );
+
+  return (
+    <Screen>
+      {land ? (
+        <View style={{ flex: 1, flexDirection: 'row' }}>
+          {map}
+          <View style={{ flex: 1, marginLeft: 14, justifyContent: 'center' }}>
+            {title}
+            {controls}
+          </View>
+        </View>
+      ) : (
+        <>
+          {title}
+          {map}
+          {controls}
+        </>
+      )}
       <Notice visible={!!msg} message={msg} onClose={() => setMsg(null)} />
       <Confirm
         visible={askLeave}
