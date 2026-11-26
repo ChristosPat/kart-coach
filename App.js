@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { BackHandler, StatusBar } from 'react-native';
 import * as ScreenOrientation from 'expo-screen-orientation';
+import { NavigationBar } from 'expo-navigation-bar';
 
 import HomeScreen from './src/screens/HomeScreen';
 import SelectTrackScreen from './src/screens/SelectTrackScreen';
@@ -82,6 +83,9 @@ export default function App() {
   return (
     <>
       <StatusBar barStyle="light-content" backgroundColor="#111418" hidden={top.name === 'Timing'} />
+      {/* Κρύβουμε τα 3 κουμπιά του Android σε όλες τις οθόνες.
+          Αν τα χρειαστείς, σύρε το δάχτυλο από την άκρη και εμφανίζονται για λίγο. */}
+      <NavigationBar hidden />
       <Comp key={top.key} nav={nav} params={top.params} />
     </>
   );
