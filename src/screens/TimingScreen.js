@@ -1,4 +1,6 @@
-// 4. Χρονομέτρηση (οριζόντια): ταχύτητα αριστερά, live χρόνος δεξιά.
+// 4. Χρονομέτρηση.
+// Ξαπλωτό: ταχύτητα αριστερά, live χρόνος δεξιά.
+// Όρθιο (π.χ. τάμπλετ): ταχύτητα πάνω, live χρόνος κάτω.
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, useWindowDimensions } from 'react-native';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
@@ -153,27 +155,44 @@ export default function TimingScreen({ nav, params }) {
   if (timer.started) live = Date.now() - offsetRef.current - timer.lapStart;
   const nextP = timer.nextPoint();
 
-  const leftW = width / 3;
-  const rightW = width - leftW;
+  const land = width > height;
   const bg = flash === 'green' ? C.green : flash === 'red' ? C.red : '#000';
-  const liveH = (height * 6) / 9;
-  const titleH = height / 9;
-  const bestH = (height * 2) / 9;
+
+  // Το κουτί της ταχύτητας: ξαπλωτό = 1/3 του πλάτους, όρθιο = 1/4 του ύψους
+  const speedW = land ? width / 3 : width;
+  const speedH = land ? height : height / 4;
+  // Το κουτί των χρόνων: ό,τι περισσεύει
+  const timeW = land ? width - speedW : width;
+  const timeH = land ? height : height - speedH;
+  const liveH = (timeH * 6) / 9;
+  const titleH = timeH / 9;
+  const bestH = (timeH * 2) / 9;
+  // Πόσο μεγάλα τα νούμερα: όσο επιτρέπει το στενότερο από πλάτος και ύψος
+  const speedFont = Math.min(speedW * 0.42, speedH * 0.55);
 
   return (
-    <View style={{ flex: 1, flexDirection: 'row', backgroundColor: bg }}>
-      <View style={{ width: leftW, height, justifyContent: 'center', alignItems: 'center', borderRightWidth: 2, borderColor: '#333' }}>
-        <Text style={{ color: '#fff', fontSize: leftW * 0.42, fontWeight: '900' }} adjustsFontSizeToFit numberOfLines={1}>
+    <View style={{ flex: 1, flexDirection: land ? 'row' : 'column', backgroundColor: bg }}>
+      <View
+        style={{
+          width: speedW,
+          height: speedH,
+          justifyContent: 'center',
+          alignItems: 'center',
+          borderColor: '#333',
+          ...(land ? { borderRightWidth: 2 } : { borderBottomWidth: 2 }),
+        }}
+      >
+        <Text style={{ color: '#fff', fontSize: speedFont, fontWeight: '900' }} adjustsFontSizeToFit numberOfLines={1}>
           {Math.round(speed)}
         </Text>
         <Text style={{ color: C.dim, fontSize: 22 }}>km/h</Text>
         {!hasFix ? <Text style={{ color: C.accent, fontSize: 16, marginTop: 8 }}>Αναμονή GPS...</Text> : null}
         <SmallButton label="Τέλος" onPress={() => setAskEnd(true)} style={{ position: 'absolute', left: 10, bottom: 10 }} />
       </View>
-      <View style={{ width: rightW }}>
+      <View style={{ width: timeW }}>
         <View style={{ height: liveH, justifyContent: 'center', alignItems: 'center' }}>
           <Text
-            style={{ color: '#fff', fontSize: liveH * 0.55, fontWeight: '900', fontVariant: ['tabular-nums'] }}
+            style={{ color: '#fff', fontSize: Math.min(liveH * 0.55, timeW * 0.2), fontWeight: '900', fontVariant: ['tabular-nums'] }}
             adjustsFontSizeToFit
             numberOfLines={1}
           >
@@ -193,7 +212,8 @@ export default function TimingScreen({ nav, params }) {
       </View>
 
       {stopped && !askEnd ? (
-        <View style={{ position: 'absolute', left: leftW, right: 0, top: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.85)', flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+        // Καλύπτει μόνο το κουτί των χρόνων, ώστε να φαίνεται η ταχύτητα
+        <View style={{ position: 'absolute', left: land ? speedW : 0, top: land ? 0 : speedH, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.85)', flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
           <BigButton
             label="ΣΥΝΕΧΕΙΑ"
             color={C.green}

@@ -12,7 +12,8 @@ const SIDE_NAME = { inner: 'ΕΣΩΤΕΡΙΚΗ ΑΚΡΗ', outer: 'ΕΞΩΤΕΡΙ
 const LAP_COLORS = ['#4FC3F7', '#29B6F6', '#FFB74D', '#FFA726'];
 
 export default function MappingScreen({ nav }) {
-  const { width } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
+  const land = width > height; // ξαπλωμένο κινητό
   const [phase, setPhase] = useState('ready'); // ready → driving → name
   const [fix, setFix] = useState(null);
   const [noPerm, setNoPerm] = useState(false);
@@ -100,22 +101,27 @@ export default function MappingScreen({ nav }) {
 
   if (phase === 'name') {
     return (
-      <Screen>
+      <Screen scroll>
         <Title>Η χαρτογράφηση τελείωσε ✔</Title>
-        <TrackSketch
-          width={width - 36}
-          height={260}
-          paths={rec.laps.map((l, i) => ({ points: l, color: LAP_COLORS[i], width: 2 }))}
-        />
-        <Text style={{ color: C.text, fontSize: 20, marginTop: 16 }}>Όνομα πίστας:</Text>
-        <TextInput
-          value={name}
-          onChangeText={setName}
-          placeholder="π.χ. Σπάτα"
-          placeholderTextColor={C.dim}
-          style={{ backgroundColor: C.card, color: C.text, fontSize: 22, padding: 14, borderRadius: 10, marginVertical: 10 }}
-        />
-        <BigButton label="Αποθήκευση" color={C.green} onPress={save} />
+        {/* Όρθιο: σχέδιο πάνω, όνομα κάτω. Ξαπλωτό: σχέδιο αριστερά, όνομα δεξιά. */}
+        <View style={{ flexDirection: land ? 'row' : 'column' }}>
+          <TrackSketch
+            width={land ? width * 0.45 : width - 36}
+            height={land ? Math.max(180, height - 150) : 260}
+            paths={rec.laps.map((l, i) => ({ points: l, color: LAP_COLORS[i], width: 2 }))}
+          />
+          <View style={{ flex: land ? 1 : 0, marginLeft: land ? 16 : 0 }}>
+            <Text style={{ color: C.text, fontSize: 20, marginTop: land ? 0 : 16 }}>Όνομα πίστας:</Text>
+            <TextInput
+              value={name}
+              onChangeText={setName}
+              placeholder="π.χ. Σπάτα"
+              placeholderTextColor={C.dim}
+              style={{ backgroundColor: C.card, color: C.text, fontSize: 22, padding: 14, borderRadius: 10, marginVertical: 10 }}
+            />
+            <BigButton label="Αποθήκευση" color={C.green} onPress={save} />
+          </View>
+        </View>
         <Notice visible={!!msg} message={msg} onClose={() => setMsg(null)} />
       </Screen>
     );
@@ -125,22 +131,27 @@ export default function MappingScreen({ nav }) {
     const good = fix && fix.accuracy !== null && fix.accuracy < 25;
     return (
       <Screen>
-        <Title sub="Στάσου στο σημείο που μπαίνεις στην πίστα">Νέα πίστα</Title>
-        <Text style={{ color: C.dim, fontSize: 18, lineHeight: 26 }}>
-          Θα οδηγήσεις {MAPPING_LAPS} αργούς γύρους:{'\n'}• 2 στην εσωτερική άκρη{'\n'}• 2 στην εξωτερική άκρη{'\n'}Οι γύροι κλείνουν μόνοι τους.
-        </Text>
-        <View style={{ flex: 1, justifyContent: 'center' }}>
-          <BigButton
-            label={fix ? 'ΑΡΧΗ ▶' : 'Αναμονή GPS...'}
-            disabled={!fix}
-            color={C.green}
-            onPress={start}
-            style={{ paddingVertical: 60 }}
-            textStyle={{ fontSize: 40 }}
-          />
-          <Text style={{ color: good ? C.green : C.dim, textAlign: 'center', fontSize: 16 }}>
-            {fix ? `Ακρίβεια GPS: ${Math.round(fix.accuracy || 0)} μ.` : ''}
-          </Text>
+        {/* Όρθιο: οδηγίες πάνω, ΑΡΧΗ κάτω. Ξαπλωτό: οδηγίες αριστερά, ΑΡΧΗ δεξιά. */}
+        <View style={{ flex: 1, flexDirection: land ? 'row' : 'column' }}>
+          <View style={{ flex: land ? 1 : 0, marginRight: land ? 20 : 0 }}>
+            <Title sub="Στάσου στο σημείο που μπαίνεις στην πίστα">Νέα πίστα</Title>
+            <Text style={{ color: C.dim, fontSize: 18, lineHeight: 26 }}>
+              Θα οδηγήσεις {MAPPING_LAPS} αργούς γύρους:{'\n'}• 2 στην εσωτερική άκρη{'\n'}• 2 στην εξωτερική άκρη{'\n'}Οι γύροι κλείνουν μόνοι τους.
+            </Text>
+          </View>
+          <View style={{ flex: 1, justifyContent: 'center' }}>
+            <BigButton
+              label={fix ? 'ΑΡΧΗ ▶' : 'Αναμονή GPS...'}
+              disabled={!fix}
+              color={C.green}
+              onPress={start}
+              style={{ paddingVertical: land ? 40 : 60 }}
+              textStyle={{ fontSize: 40 }}
+            />
+            <Text style={{ color: good ? C.green : C.dim, textAlign: 'center', fontSize: 16 }}>
+              {fix ? `Ακρίβεια GPS: ${Math.round(fix.accuracy || 0)} μ.` : ''}
+            </Text>
+          </View>
         </View>
         <SmallButton label="Πίσω" onPress={() => nav.pop()} style={{ alignSelf: 'flex-start' }} />
       </Screen>
@@ -153,22 +164,54 @@ export default function MappingScreen({ nav }) {
     ...rec.laps.map((l, i) => ({ points: l, color: LAP_COLORS[i], width: 2 })),
     { points: rec.current, color: '#FFFFFF', width: 3 },
   ];
-  return (
-    <Screen style={flash ? { backgroundColor: C.green } : null}>
-      <Text style={{ color: C.text, fontSize: 44, fontWeight: '900', textAlign: 'center' }}>
+  // Τα «κομμάτια» της οθόνης. Τα στήνουμε μία φορά και τα τοποθετούμε
+  // αλλιώς στο όρθιο και αλλιώς στο ξαπλωτό, σαν τα ίδια έπιπλα σε άλλο δωμάτιο.
+  const lapInfo = (
+    <>
+      <Text style={{ color: C.text, fontSize: land ? 36 : 44, fontWeight: '900', textAlign: 'center' }}>
         ΓΥΡΟΣ {lapNo + 1} / {MAPPING_LAPS}
       </Text>
-      <Text style={{ color: C.accent, fontSize: 28, fontWeight: '800', textAlign: 'center', marginBottom: 10 }}>
+      <Text style={{ color: C.accent, fontSize: land ? 24 : 28, fontWeight: '800', textAlign: 'center', marginBottom: 10 }}>
         {SIDE_NAME[LAP_SIDES[lapNo]]}
       </Text>
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-        <TrackSketch width={width - 36} height={340} paths={paths} dot={{ x: 0, y: 0 }} />
-      </View>
-      <Text style={{ color: C.dim, textAlign: 'center', fontSize: 15 }}>
-        {fix ? `GPS ±${Math.round(fix.accuracy || 0)} μ. · σημεία: ${rec.current.length}` : ''}
-        {tick ? '' : ''}
-      </Text>
-      <SmallButton label="Ακύρωση" color={C.red} onPress={() => setAskCancel(true)} style={{ alignSelf: 'flex-end', marginTop: 8 }} />
+    </>
+  );
+  const gpsInfo = (
+    <Text style={{ color: C.dim, textAlign: 'center', fontSize: 15 }}>
+      {fix ? `GPS ±${Math.round(fix.accuracy || 0)} μ. · σημεία: ${rec.current.length}` : ''}
+      {tick ? '' : ''}
+    </Text>
+  );
+  const cancelBtn = (
+    <SmallButton label="Ακύρωση" color={C.red} onPress={() => setAskCancel(true)} style={{ alignSelf: 'flex-end', marginTop: 8 }} />
+  );
+
+  return (
+    <Screen style={flash ? { backgroundColor: C.green } : null}>
+      {land ? (
+        // Ξαπλωτό: χάρτης αριστερά (όλο το ύψος), πληροφορίες δεξιά
+        <View style={{ flex: 1, flexDirection: 'row' }}>
+          <View style={{ alignItems: 'center', justifyContent: 'center' }}>
+            <TrackSketch width={width * 0.55} height={height - 48} paths={paths} dot={{ x: 0, y: 0 }} />
+          </View>
+          <View style={{ flex: 1, justifyContent: 'center', marginLeft: 12 }}>
+            {lapInfo}
+            {gpsInfo}
+            <View style={{ flex: 1 }} />
+            {cancelBtn}
+          </View>
+        </View>
+      ) : (
+        // Όρθιο: όπως πριν, το ένα κάτω από το άλλο
+        <>
+          {lapInfo}
+          <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+            <TrackSketch width={width - 36} height={340} paths={paths} dot={{ x: 0, y: 0 }} />
+          </View>
+          {gpsInfo}
+          {cancelBtn}
+        </>
+      )}
       <Confirm
         visible={askCancel}
         title="Σίγουρα;"

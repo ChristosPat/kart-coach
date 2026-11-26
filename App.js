@@ -27,12 +27,6 @@ const SCREENS = {
   History: HistoryScreen,
 };
 
-// Ποια οθόνη πώς στέκεται
-function orientationFor(name) {
-  if (name === 'Timing') return ScreenOrientation.OrientationLock.LANDSCAPE;
-  if (name === 'Analytic') return ScreenOrientation.OrientationLock.DEFAULT; // γυρίζει ελεύθερα
-  return ScreenOrientation.OrientationLock.PORTRAIT_UP;
-}
 
 export default function App() {
   const [stack, setStack] = useState([{ name: 'Home', params: {}, key: 'home' }]);
@@ -58,9 +52,10 @@ export default function App() {
     };
   }, []);
 
+  // Όλες οι οθόνες γυρίζουν ελεύθερα: όρθια ή ξαπλωτά, όπως κρατάς το κινητό/τάμπλετ
   useEffect(() => {
-    ScreenOrientation.lockAsync(orientationFor(top.name)).catch(() => {});
-  }, [top.key]);
+    ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.DEFAULT).catch(() => {});
+  }, []);
 
   const onBack = useCallback(() => {
     if (backHandler.current) {

@@ -1,6 +1,6 @@
 // Κοινά «τουβλάκια» για όλες τις οθόνες: κουμπιά, τίτλοι, παράθυρο επιβεβαίωσης.
 import React from 'react';
-import { View, Text, Pressable, Modal, StyleSheet } from 'react-native';
+import { View, Text, Pressable, Modal, ScrollView, StyleSheet, useWindowDimensions } from 'react-native';
 
 export const C = {
   bg: '#111418',
@@ -13,8 +13,37 @@ export const C = {
   line: '#2C333D',
 };
 
-export function Screen({ children, style }) {
-  return <View style={[s.screen, style]}>{children}</View>;
+// Είναι το κινητό ξαπλωμένο; (πλάτος μεγαλύτερο από ύψος)
+export function useLandscape() {
+  const { width, height } = useWindowDimensions();
+  return width > height;
+}
+
+// Η «σελίδα» κάθε οθόνης.
+// scroll: αν δεν χωράνε όλα, η σελίδα κυλάει πάνω-κάτω με το δάχτυλο.
+export function Screen({ children, style, scroll }) {
+  const land = useLandscape();
+  const pad = land ? s.screenLand : null; // ξαπλωτό: λιγότερο κενό πάνω
+  if (scroll) {
+    return (
+      <ScrollView
+        style={[{ flex: 1, backgroundColor: C.bg }, style]}
+        contentContainerStyle={[s.screen, pad, { flex: 0, flexGrow: 1, backgroundColor: 'transparent' }]}
+        keyboardShouldPersistTaps="handled"
+      >
+        {children}
+      </ScrollView>
+    );
+  }
+  return <View style={[s.screen, pad, style]}>{children}</View>;
+}
+
+// Λίστα που κυλάει μόνη της όταν το κινητό είναι όρθιο.
+// Όταν είναι ξαπλωμένο, κυλάει όλη η σελίδα (Screen scroll), οπότε η λίστα απλώνεται.
+export function List({ children, style }) {
+  const land = useLandscape();
+  if (land) return <View style={style}>{children}</View>;
+  return <ScrollView style={[{ flex: 1 }, style]}>{children}</ScrollView>;
 }
 
 export function Title({ children, sub }) {
@@ -85,6 +114,7 @@ export function Notice({ visible, message, onClose }) {
 
 export const s = StyleSheet.create({
   screen: { flex: 1, backgroundColor: C.bg, paddingHorizontal: 18, paddingTop: 44, paddingBottom: 18 },
+  screenLand: { paddingTop: 24, paddingHorizontal: 28 },
   titleBox: { marginBottom: 18 },
   title: { color: C.text, fontSize: 28, fontWeight: '800' },
   sub: { color: C.accent, fontSize: 20, marginTop: 4, fontWeight: '600' },
