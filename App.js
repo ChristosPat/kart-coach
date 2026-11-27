@@ -14,6 +14,7 @@ import TimingScreen from './src/screens/TimingScreen';
 import SummaryScreen from './src/screens/SummaryScreen';
 import AnalyticScreen from './src/screens/AnalyticScreen';
 import HistoryScreen from './src/screens/HistoryScreen';
+import LapLineScreen from './src/screens/LapLineScreen';
 
 const SCREENS = {
   Home: HomeScreen,
@@ -24,6 +25,7 @@ const SCREENS = {
   Timing: TimingScreen,
   Summary: SummaryScreen,
   Analytic: AnalyticScreen,
+  LapLine: LapLineScreen,
   History: HistoryScreen,
 };
 
