@@ -111,6 +111,17 @@ console.log('Γραμμές: OK');
     assert.equal(l.splits.length, 2);
     assert.ok(l.splits.every((x) => x !== null));
   }
+  // Πορεία γύρου (5α): κάθε γύρος θυμάται από πού πέρασε
+  for (const l of laps) {
+    assert.ok(Array.isArray(l.line) && l.line.length >= 40, `ο γύρος ${l.n} έχει πορεία`);
+    assert.equal(l.line[0][2], 0, 'η πορεία ξεκινά στο 0 (πάνω στη γραμμή)');
+    assert.equal(l.line[l.line.length - 1][2], Math.round(l.time), 'και τελειώνει στον χρόνο του γύρου');
+    for (let i = 1; i < l.line.length; i++) assert.ok(l.line[i][2] >= l.line[i - 1][2], 'ο χρόνος πάει μόνο μπροστά');
+  }
+  // Το τέλος ενός γύρου = η αρχή του επόμενου (ίδιο σημείο πάνω στη γραμμή)
+  const endA = laps[0].line[laps[0].line.length - 1], startB = laps[1].line[0];
+  assert.deepEqual([endA[0], endA[1]], [startB[0], startB[1]]);
+  console.log('Πορεία γύρου: OK,', laps[0].line.length, 'σημεία στον 1ο γύρο');
   const colors = events.filter((e) => e.type === 'point').map((e) => e.color);
   assert.equal(colors[0], null, 'πρώτο πέρασμα χωρίς χρώμα');
   assert.ok(colors.slice(3).every((c) => c === 'green' || c === 'red'));
