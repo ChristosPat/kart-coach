@@ -5,6 +5,7 @@ import { MappingRecorder, buildTrackShape } from '../src/core/mapping.js';
 import { makeLineAt, orderSectors, checkpoints, findLineNear } from '../src/core/lines.js';
 import { LapTimer, sectorTimes, formatTime } from '../src/core/timing.js';
 import { speedZone, speedKmh } from '../src/core/speedo.js';
+import { tracksByRecent, groupByDay, firstTab, dayTitle } from '../src/core/history.js';
 
 const ORIGIN = { lat: 37.9, lon: 23.9 };
 
@@ -156,5 +157,26 @@ assert.equal(Math.round(speedKmh({ speed: 4 }, null)), 14); // 4 μ/δ = 14.4 km
   assert.ok(Math.abs(v - 18) < 0.5, 'ταχύτητα από απόσταση');
 }
 console.log('Κοντέρ: OK');
+
+// Ιστορικό σε μία οθόνη
+{
+  const S = (id, trackId, day, startedAt) => ({ id, trackId, trackName: trackId.toUpperCase(), day, startedAt });
+  const all = [
+    S('1', 'spata', '2026-11-22', 100),
+    S('2', 'megara', '2026-11-24', 200),
+    S('3', 'spata', '2026-11-26', 300),
+    S('4', 'spata', '2026-11-26', 400),
+  ];
+  const tr = tracksByRecent(all);
+  assert.deepEqual(tr.map((t) => t.trackId), ['spata', 'megara'], 'πιο πρόσφατη πίστα πρώτη');
+  const g = groupByDay(all, 'spata');
+  assert.deepEqual(g.map((d) => d.day), ['2026-11-26', '2026-11-22'], 'νεότερη μέρα πρώτη');
+  assert.deepEqual(g[0].sessions.map((x) => x.id), ['4', '3'], 'νεότερο session πρώτο');
+  assert.equal(firstTab(tr, 'megara'), 'megara', 'ανοίγει η επιλεγμένη πίστα');
+  assert.equal(firstTab(tr, 'kanena'), 'spata', 'αλλιώς η πιο πρόσφατη');
+  assert.equal(firstTab([], 'x'), null);
+  assert.equal(dayTitle('2026-11-26'), 'Πέμπτη 26/11/2026');
+  console.log('Ιστορικό: OK');
+}
 
 console.log('ΟΛΑ ΤΑ ΤΕΣΤ ΠΕΡΑΣΑΝ ✔');

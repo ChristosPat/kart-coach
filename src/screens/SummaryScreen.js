@@ -48,7 +48,11 @@ export default function SummaryScreen({ nav, params }) {
       </List>
       <BigButton label="Αναλυτικά" onPress={() => nav.push('Analytic', { sessionId: session.id })} />
       {params.fromHistory ? (
-        <BigButton label="Πίσω" onPress={() => nav.pop()} />
+        // Από το Ιστορικό: «Πίσω» στη λίστα ή κατευθείαν στην Αρχική
+        <View style={{ flexDirection: 'row' }}>
+          <BigButton label="Πίσω" onPress={() => nav.pop()} style={{ flex: 1, marginRight: 6 }} />
+          <BigButton label="⌂ Αρχική" onPress={() => nav.home()} style={{ flex: 1, marginLeft: 6 }} />
+        </View>
       ) : (
         <BigButton label="Αρχική" color={C.green} onPress={() => nav.home()} />
       )}

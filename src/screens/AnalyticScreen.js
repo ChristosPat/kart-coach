@@ -60,7 +60,10 @@ export default function AnalyticScreen({ nav, params }) {
           </View>
         </ScrollView>
       </List>
-      <BigButton label="Πίσω" onPress={() => nav.pop()} />
+      <View style={{ flexDirection: 'row' }}>
+        <BigButton label="Πίσω" onPress={() => nav.pop()} style={{ flex: 1, marginRight: 6 }} />
+        <BigButton label="⌂ Αρχική" onPress={() => nav.home()} style={{ flex: 1, marginLeft: 6 }} />
+      </View>
     </Screen>
   );
 }
