@@ -71,11 +71,11 @@ export function BigButton({ label, onPress, color, style, textStyle, disabled })
   );
 }
 
-export function SmallButton({ label, onPress, style, color }) {
+export function SmallButton({ label, onPress, style, color, disabled }) {
   return (
     <Pressable
-      onPress={onPress}
-      style={({ pressed }) => [s.small, { backgroundColor: color || C.card, opacity: pressed ? 0.7 : 1 }, style]}
+      onPress={disabled ? undefined : onPress}
+      style={({ pressed }) => [s.small, { backgroundColor: color || C.card, opacity: disabled ? 0.3 : pressed ? 0.7 : 1 }, style]}
     >
       <Text style={s.smallText}>{label}</Text>
     </Pressable>

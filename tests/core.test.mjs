@@ -6,6 +6,7 @@ import { makeLineAt, orderSectors, checkpoints, findLineNear } from '../src/core
 import { LapTimer, sectorTimes, formatTime } from '../src/core/timing.js';
 import { speedZone, speedKmh } from '../src/core/speedo.js';
 import { tracksByRecent, groupByDay, firstTab, dayTitle } from '../src/core/history.js';
+import { speedSegments, speedRange, speedColor, SLOW, MID, FAST } from '../src/core/lapLine.js';
 
 const ORIGIN = { lat: 37.9, lon: 23.9 };
 
@@ -124,6 +125,11 @@ console.log('Γραμμές: OK');
   const endA = laps[0].line[laps[0].line.length - 1], startB = laps[1].line[0];
   assert.deepEqual([endA[0], endA[1]], [startB[0], startB[1]]);
   console.log('Πορεία γύρου: OK,', laps[0].line.length, 'σημεία στον 1ο γύρο');
+  // Χρώματα ταχύτητας (5β): οδηγούμε σταθερά 60 km/h, άρα τα κομμάτια ≈ 60
+  const segs = speedSegments(laps[1].line);
+  assert.ok(segs.length >= 40);
+  const avg = segs.reduce((a, x) => a + x.kmh, 0) / segs.length;
+  assert.ok(Math.abs(avg - 60) < 8, 'μέση ταχύτητα κοντά στα 60 km/h');
   const colors = events.filter((e) => e.type === 'point').map((e) => e.color);
   assert.equal(colors[0], null, 'πρώτο πέρασμα χωρίς χρώμα');
   assert.ok(colors.slice(3).every((c) => c === 'green' || c === 'red'));
@@ -177,6 +183,19 @@ console.log('Κοντέρ: OK');
   assert.equal(firstTab([], 'x'), null);
   assert.equal(dayTitle('2026-11-26'), 'Πέμπτη 26/11/2026');
   console.log('Ιστορικό: OK');
+}
+
+// Χρώματα πορείας: αργό κόκκινο, γρήγορο πράσινο
+{
+  // 3 κομμάτια: 10 μ. σε 1 δευτ. (36), 5 μ. (18), 15 μ. (54 km/h)
+  const segs = speedSegments([[0, 0, 0], [10, 0, 1000], [15, 0, 2000], [30, 0, 3000], [30, 0, 3000]]);
+  assert.equal(segs.length, 3, 'σημεία με ίδιο χρόνο προσπερνιούνται');
+  const r = speedRange(segs);
+  assert.equal(Math.round(r.min), 18);
+  assert.equal(Math.round(r.max), 54);
+  assert.deepEqual(segs.map((s) => speedColor(s.kmh, r)), [MID, SLOW, FAST]);
+  assert.deepEqual(speedSegments(undefined), [], 'παλιό session χωρίς πορεία');
+  console.log('Χρώματα πορείας: OK');
 }
 
 console.log('ΟΛΑ ΤΑ ΤΕΣΤ ΠΕΡΑΣΑΝ ✔');
