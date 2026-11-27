@@ -7,6 +7,7 @@ import TrackSketch from '../TrackSketch';
 import { askPermission, watchGps } from '../gps';
 import { MappingRecorder, buildTrackShape, LAP_SIDES, MAPPING_LAPS } from '../core/mapping';
 import { saveTrack, setSelectedTrackId, newId } from '../storage';
+import { speedZone, speedKmh } from '../core/speedo';
 
 const SIDE_NAME = { inner: 'ΕΣΩΤΕΡΙΚΗ ΑΚΡΗ', outer: 'ΕΞΩΤΕΡΙΚΗ ΑΚΡΗ' };
 const LAP_COLORS = ['#4FC3F7', '#29B6F6', '#FFB74D', '#FFA726'];
@@ -16,6 +17,7 @@ export default function MappingScreen({ nav }) {
   const land = width > height; // ξαπλωμένο κινητό
   const [phase, setPhase] = useState('ready'); // ready → driving → name
   const [fix, setFix] = useState(null);
+  const [speed, setSpeed] = useState(0); // km/h για το κοντέρ
   const [noPerm, setNoPerm] = useState(false);
   const [tick, setTick] = useState(0); // για να ξαναζωγραφίζεται η οθόνη
   const [flash, setFlash] = useState(false);
@@ -23,6 +25,7 @@ export default function MappingScreen({ nav }) {
   const [name, setName] = useState('');
   const [msg, setMsg] = useState(null);
   const recRef = useRef(null);
+  const lastFix = useRef(null); // το προηγούμενο σημάδι GPS (για την ταχύτητα)
   const phaseRef = useRef('ready');
 
   useEffect(() => {
@@ -34,6 +37,8 @@ export default function MappingScreen({ nav }) {
       stop = await watchGps((f) => {
         if (!alive) return;
         setFix(f);
+        setSpeed(speedKmh(f, lastFix.current));
+        lastFix.current = f;
         const rec = recRef.current;
         if (phaseRef.current === 'driving' && rec) {
           if (rec.add(f)) {
@@ -182,6 +187,16 @@ export default function MappingScreen({ nav }) {
       {tick ? '' : ''}
     </Text>
   );
+  // Κοντέρ: αριθμός σε χρωματιστό κουτί (πράσινο = σωστή ταχύτητα)
+  const zone = speedZone(speed);
+  const speedo = (
+    <View style={{ alignSelf: 'center', alignItems: 'center', backgroundColor: zone.color, borderRadius: 14, paddingVertical: 6, paddingHorizontal: 22, marginVertical: 8 }}>
+      <Text style={{ color: '#fff', fontSize: land ? 48 : 40, fontWeight: '900', fontVariant: ['tabular-nums'] }}>
+        {Math.round(speed)} <Text style={{ fontSize: 20, fontWeight: '700' }}>km/h</Text>
+      </Text>
+      <Text style={{ color: '#fff', fontSize: 16, fontWeight: '700' }}>{zone.label}</Text>
+    </View>
+  );
   const cancelBtn = (
     <SmallButton label="Ακύρωση" color={C.red} onPress={() => setAskCancel(true)} style={{ alignSelf: 'flex-end', marginTop: 8 }} />
   );
@@ -196,6 +211,7 @@ export default function MappingScreen({ nav }) {
           </View>
           <View style={{ flex: 1, justifyContent: 'center', marginLeft: 12 }}>
             {lapInfo}
+            {speedo}
             {gpsInfo}
             <View style={{ flex: 1 }} />
             {cancelBtn}
@@ -205,6 +221,7 @@ export default function MappingScreen({ nav }) {
         // Όρθιο: όπως πριν, το ένα κάτω από το άλλο
         <>
           {lapInfo}
+          {speedo}
           <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
             <TrackSketch width={width - 36} height={340} paths={paths} dot={{ x: 0, y: 0 }} />
           </View>
