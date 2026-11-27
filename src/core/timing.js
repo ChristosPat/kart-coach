@@ -17,6 +17,7 @@ export class LapTimer {
     this.splits = []; // αθροιστικοί χρόνοι του τρέχοντος γύρου
     this.laps = []; // ολοκληρωμένοι γύροι
     this.best = new Array(this.points.length).fill(null); // best κάθε σημείου στο session
+    this.path = []; // η πορεία του τρέχοντος γύρου: [[x, y, t], ...]
   }
 
   get started() {
@@ -41,7 +42,7 @@ export class LapTimer {
         const startLine = this.points[this.points.length - 1];
         const tc = this.crossing(startLine, this.prev, cur);
         if (tc !== null) {
-          this.beginLap(tc);
+          this.beginLap(tc, at(this.prev, cur, tc));
           events.push({ type: 'lapStart', t: tc });
         }
       } else {
@@ -55,8 +56,10 @@ export class LapTimer {
           for (let s = this.next; s < k; s++) this.splits[s] = null; // χαμένα sectors
           events.push(this.recordPoint(k, elapsed));
           if (isFinish) {
+            const pc = at(this.prev, cur, tc); // το σημείο πάνω στη γραμμή
+            this.addPathPoint(pc, tc); // ο γύρος κλείνει ακριβώς στη γραμμή...
             events.push(this.finishLap());
-            this.beginLap(tc);
+            this.beginLap(tc, pc); // ...και ο επόμενος ανοίγει από το ίδιο σημείο
             events.push({ type: 'lapStart', t: tc });
           } else {
             this.next = k + 1;
@@ -65,14 +68,24 @@ export class LapTimer {
         }
       }
     }
+    if (this.started) this.addPathPoint(cur.p, cur.t);
     this.prev = cur;
     return events;
   }
 
-  beginLap(t) {
+  // p = το σημείο πάνω στη γραμμή εκκίνησης (για να ξεκινά η πορεία από εκεί)
+  beginLap(t, p) {
     this.lapStart = t;
     this.next = 0;
     this.splits = [];
+    this.path = [];
+    if (p) this.addPathPoint(p, t);
+  }
+
+  // Ένα σημείο της πορείας: x, y σε μέτρα (με 1 δεκαδικό) και χρόνος από την αρχή του γύρου (ms).
+  // Κρατάμε λίγα ψηφία για να πιάνει λίγο χώρο στη μνήμη του κινητού.
+  addPathPoint(p, t) {
+    this.path.push([round1(p.x), round1(p.y), Math.round(t - this.lapStart)]);
   }
 
   // Καταγράφει το πέρασμα από ένα σημείο και αποφασίζει πράσινο/κόκκινο
@@ -92,6 +105,7 @@ export class LapTimer {
       n: this.laps.length + 1,
       time,
       splits: Array.from({ length: n - 1 }, (_, i) => (this.splits[i] === undefined ? null : this.splits[i])),
+      line: this.path, // η πορεία του γύρου
     };
     this.laps.push(lap);
     return { type: 'lap', lap };
@@ -103,6 +117,14 @@ export class LapTimer {
     const k = this.next;
     return { name: this.points[k].name, best: this.best[k] };
   }
+}
+
+const round1 = (v) => Math.round(v * 10) / 10;
+
+// Πού ήταν το kart τη στιγμή tc, ανάμεσα σε δύο σημάδια a και b (σαν χάρακας ανάμεσά τους)
+function at(a, b, tc) {
+  const f = b.t === a.t ? 0 : (tc - a.t) / (b.t - a.t);
+  return { x: a.p.x + f * (b.p.x - a.p.x), y: a.p.y + f * (b.p.y - a.p.y) };
 }
 
 // Χρόνοι κάθε sector από αθροιστικούς χρόνους (για την αναλυτική)

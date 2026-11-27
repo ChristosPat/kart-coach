@@ -4,6 +4,7 @@ import { unproject, project, dist } from '../src/core/geo.js';
 import { MappingRecorder, buildTrackShape } from '../src/core/mapping.js';
 import { makeLineAt, orderSectors, checkpoints, findLineNear } from '../src/core/lines.js';
 import { LapTimer, sectorTimes, formatTime } from '../src/core/timing.js';
+import { speedZone, speedKmh } from '../src/core/speedo.js';
 import { tracksByRecent, groupByDay, firstTab, dayTitle } from '../src/core/history.js';
 
 const ORIGIN = { lat: 37.9, lon: 23.9 };
@@ -112,6 +113,17 @@ console.log('Γραμμές: OK');
     assert.equal(l.splits.length, 2);
     assert.ok(l.splits.every((x) => x !== null));
   }
+  // Πορεία γύρου (5α): κάθε γύρος θυμάται από πού πέρασε
+  for (const l of laps) {
+    assert.ok(Array.isArray(l.line) && l.line.length >= 40, `ο γύρος ${l.n} έχει πορεία`);
+    assert.equal(l.line[0][2], 0, 'η πορεία ξεκινά στο 0 (πάνω στη γραμμή)');
+    assert.equal(l.line[l.line.length - 1][2], Math.round(l.time), 'και τελειώνει στον χρόνο του γύρου');
+    for (let i = 1; i < l.line.length; i++) assert.ok(l.line[i][2] >= l.line[i - 1][2], 'ο χρόνος πάει μόνο μπροστά');
+  }
+  // Το τέλος ενός γύρου = η αρχή του επόμενου (ίδιο σημείο πάνω στη γραμμή)
+  const endA = laps[0].line[laps[0].line.length - 1], startB = laps[1].line[0];
+  assert.deepEqual([endA[0], endA[1]], [startB[0], startB[1]]);
+  console.log('Πορεία γύρου: OK,', laps[0].line.length, 'σημεία στον 1ο γύρο');
   const colors = events.filter((e) => e.type === 'point').map((e) => e.color);
   assert.equal(colors[0], null, 'πρώτο πέρασμα χωρίς χρώμα');
   assert.ok(colors.slice(3).every((c) => c === 'green' || c === 'red'));
@@ -130,6 +142,22 @@ console.log('Γραμμές: OK');
 
 assert.equal(formatTime(48912), '0:48.9');
 assert.equal(formatTime(12345, false), '12.3');
+// Κοντέρ καταγραφής: τα χρώματα του «φαναριού»
+assert.equal(speedZone(3).label, 'πιο γρήγορα');
+assert.equal(speedZone(8).label, 'λίγο πιο γρήγορα');
+assert.equal(speedZone(10).label, 'τέλεια');
+assert.equal(speedZone(15).label, 'τέλεια');
+assert.equal(speedZone(18).label, 'λίγο πιο αργά');
+assert.equal(speedZone(25).label, 'πιο αργά!');
+assert.equal(Math.round(speedKmh({ speed: 4 }, null)), 14); // 4 μ/δ = 14.4 km/h
+{
+  // Χωρίς ταχύτητα από το GPS: τη βγάζουμε από την απόσταση (10 μ. σε 2 δευτ. = 18 km/h)
+  const a = unproject(ORIGIN, { x: 0, y: 0 }), b = unproject(ORIGIN, { x: 10, y: 0 });
+  const v = speedKmh({ ...b, speed: null, t: 2000 }, { ...a, t: 0 });
+  assert.ok(Math.abs(v - 18) < 0.5, 'ταχύτητα από απόσταση');
+}
+console.log('Κοντέρ: OK');
+
 // Ιστορικό σε μία οθόνη
 {
   const S = (id, trackId, day, startedAt) => ({ id, trackId, trackName: trackId.toUpperCase(), day, startedAt });
