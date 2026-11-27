@@ -4,6 +4,8 @@ import { unproject, project, dist } from '../src/core/geo.js';
 import { MappingRecorder, buildTrackShape } from '../src/core/mapping.js';
 import { makeLineAt, orderSectors, checkpoints, findLineNear } from '../src/core/lines.js';
 import { LapTimer, sectorTimes, formatTime } from '../src/core/timing.js';
+import { speedZone, speedKmh } from '../src/core/speedo.js';
+import { tracksByRecent, groupByDay, firstTab, dayTitle } from '../src/core/history.js';
 import { speedSegments, speedRange, speedColor, SLOW, MID, FAST } from '../src/core/lapLine.js';
 
 const ORIGIN = { lat: 37.9, lon: 23.9 };
@@ -146,6 +148,43 @@ console.log('Γραμμές: OK');
 
 assert.equal(formatTime(48912), '0:48.9');
 assert.equal(formatTime(12345, false), '12.3');
+// Κοντέρ καταγραφής: τα χρώματα του «φαναριού»
+assert.equal(speedZone(3).label, 'πιο γρήγορα');
+assert.equal(speedZone(8).label, 'λίγο πιο γρήγορα');
+assert.equal(speedZone(10).label, 'τέλεια');
+assert.equal(speedZone(15).label, 'τέλεια');
+assert.equal(speedZone(18).label, 'λίγο πιο αργά');
+assert.equal(speedZone(25).label, 'πιο αργά!');
+assert.equal(Math.round(speedKmh({ speed: 4 }, null)), 14); // 4 μ/δ = 14.4 km/h
+{
+  // Χωρίς ταχύτητα από το GPS: τη βγάζουμε από την απόσταση (10 μ. σε 2 δευτ. = 18 km/h)
+  const a = unproject(ORIGIN, { x: 0, y: 0 }), b = unproject(ORIGIN, { x: 10, y: 0 });
+  const v = speedKmh({ ...b, speed: null, t: 2000 }, { ...a, t: 0 });
+  assert.ok(Math.abs(v - 18) < 0.5, 'ταχύτητα από απόσταση');
+}
+console.log('Κοντέρ: OK');
+
+// Ιστορικό σε μία οθόνη
+{
+  const S = (id, trackId, day, startedAt) => ({ id, trackId, trackName: trackId.toUpperCase(), day, startedAt });
+  const all = [
+    S('1', 'spata', '2026-11-22', 100),
+    S('2', 'megara', '2026-11-24', 200),
+    S('3', 'spata', '2026-11-26', 300),
+    S('4', 'spata', '2026-11-26', 400),
+  ];
+  const tr = tracksByRecent(all);
+  assert.deepEqual(tr.map((t) => t.trackId), ['spata', 'megara'], 'πιο πρόσφατη πίστα πρώτη');
+  const g = groupByDay(all, 'spata');
+  assert.deepEqual(g.map((d) => d.day), ['2026-11-26', '2026-11-22'], 'νεότερη μέρα πρώτη');
+  assert.deepEqual(g[0].sessions.map((x) => x.id), ['4', '3'], 'νεότερο session πρώτο');
+  assert.equal(firstTab(tr, 'megara'), 'megara', 'ανοίγει η επιλεγμένη πίστα');
+  assert.equal(firstTab(tr, 'kanena'), 'spata', 'αλλιώς η πιο πρόσφατη');
+  assert.equal(firstTab([], 'x'), null);
+  assert.equal(dayTitle('2026-11-26'), 'Πέμπτη 26/11/2026');
+  console.log('Ιστορικό: OK');
+}
+
 // Χρώματα πορείας: αργό κόκκινο, γρήγορο πράσινο
 {
   // 3 κομμάτια: 10 μ. σε 1 δευτ. (36), 5 μ. (18), 15 μ. (54 km/h)

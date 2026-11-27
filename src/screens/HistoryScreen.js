@@ -1,93 +1,102 @@
-// 5. Ιστορικό σαν μπαμπούσκες: Πίστα → Ημερομηνία → Session.
+// 5. Ιστορικό σε ΜΙΑ οθόνη:
+//    πάνω καρτέλες με τις πίστες, από κάτω τα sessions με τις μέρες σαν επικεφαλίδες.
+//    Αρχική → Ιστορικό → Σύνοψη = 2 πατήματα.
 import React, { useEffect, useState } from 'react';
-import { Text, Pressable, View } from 'react-native';
+import { Text, Pressable, View, ScrollView } from 'react-native';
 import { Screen, Title, BigButton, List, useLandscape, s, C } from '../ui';
-import { getSessions, getTracks, formatDay } from '../storage';
+import { getSessions, getTracks, getSelectedTrackId } from '../storage';
 import { formatTime } from '../core/timing';
+import { tracksByRecent, groupByDay, firstTab, dayTitle } from '../core/history';
 import { bestLap } from './SummaryScreen';
 
-export default function HistoryScreen({ nav, params }) {
+const hhmm = (ts) => {
+  const t = new Date(ts);
+  return `${String(t.getHours()).padStart(2, '0')}:${String(t.getMinutes()).padStart(2, '0')}`;
+};
+
+export default function HistoryScreen({ nav }) {
   const [sessions, setSessions] = useState(null);
+  const [names, setNames] = useState({}); // τα τωρινά ονόματα (αν μετονόμασες πίστα)
+  const [tab, setTab] = useState(null); // ποια πίστα βλέπουμε
   const land = useLandscape();
-  const [names, setNames] = useState({});
 
   useEffect(() => {
     (async () => {
-      const [all, tracks] = await Promise.all([getSessions(), getTracks()]);
+      const [all, tracks, selected] = await Promise.all([getSessions(), getTracks(), getSelectedTrackId()]);
       const map = {};
       tracks.forEach((t) => (map[t.id] = t.name));
       setNames(map);
       setSessions(all);
+      setTab(firstTab(tracksByRecent(all), selected));
     })();
   }, []);
 
   if (!sessions) return <Screen />;
-  const nameOf = (sess) => names[sess.trackId] || sess.trackName;
-  const level = params.level;
 
-  let title = 'Ιστορικό';
-  let sub = null;
-  let items = [];
-
-  if (level === 'tracks') {
-    // Μία γραμμή για κάθε πίστα, πρώτη αυτή που οδήγησες πιο πρόσφατα
-    const latest = {};
-    for (const x of sessions) latest[x.trackId] = Math.max(latest[x.trackId] || 0, x.startedAt);
-    const ids = Object.keys(latest).sort((a, b) => latest[b] - latest[a]);
-    items = ids.map((id) => {
-      const sample = sessions.find((x) => x.trackId === id);
-      return {
-        key: id,
-        label: nameOf(sample),
-        onPress: () => nav.push('History', { level: 'dates', trackId: id }),
-      };
-    });
-  } else if (level === 'dates') {
-    const mine = sessions.filter((x) => x.trackId === params.trackId);
-    title = nameOf(mine[0]);
-    sub = 'Ημερομηνίες';
-    const days = [...new Set(mine.map((x) => x.day))].sort().reverse();
-    items = days.map((d) => {
-      const reversed = mine.some((x) => x.day === d && x.direction === -1);
-      return {
-        key: d,
-        label: formatDay(d) + (reversed ? '   ⇄ ανάποδα' : ''),
-        onPress: () => nav.push('History', { level: 'sessions', trackId: params.trackId, day: d }),
-      };
-    });
-  } else {
-    const mine = sessions
-      .filter((x) => x.trackId === params.trackId && x.day === params.day)
-      .sort((a, b) => a.number - b.number);
-    title = nameOf(mine[0]);
-    sub = formatDay(params.day);
-    items = mine.map((x) => {
-      const time = new Date(x.startedAt);
-      const hh = `${String(time.getHours()).padStart(2, '0')}:${String(time.getMinutes()).padStart(2, '0')}`;
-      return {
-        key: x.id,
-        label: `Session ${x.number}  ·  ${hh}${x.direction === -1 ? ' ⇄' : ''}`,
-        detail: `${x.laps.length} γύροι · best ${formatTime(bestLap(x).time)}`,
-        onPress: () => nav.push('Summary', { sessionId: x.id, fromHistory: true }),
-      };
-    });
-  }
+  const tracks = tracksByRecent(sessions);
+  const days = tab ? groupByDay(sessions, tab) : [];
 
   return (
     <Screen scroll={land}>
-      <Title sub={sub}>{title}</Title>
+      <Title>Ιστορικό</Title>
+
+      {/* Καρτέλες πιστών: σέρνονται δεξιά-αριστερά αν είναι πολλές */}
+      {tracks.length > 1 ? (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0, marginBottom: 10 }}>
+          {tracks.map((t) => {
+            const on = t.trackId === tab;
+            return (
+              <Pressable
+                key={t.trackId}
+                onPress={() => setTab(t.trackId)}
+                style={{
+                  backgroundColor: on ? C.accent : C.card,
+                  borderRadius: 22,
+                  paddingVertical: 10,
+                  paddingHorizontal: 18,
+                  marginRight: 8,
+                }}
+              >
+                <Text style={{ color: on ? '#111' : C.text, fontSize: 18, fontWeight: on ? '800' : '600' }}>
+                  {names[t.trackId] || t.trackName}
+                  {on ? ' ✔' : ''}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+      ) : tracks.length === 1 ? (
+        <Text style={s.sub}>{names[tracks[0].trackId] || tracks[0].trackName}</Text>
+      ) : null}
+
       <List>
-        {items.length === 0 ? <Text style={s.empty}>Δεν υπάρχουν χρόνοι ακόμα.</Text> : null}
-        {items.map((it) => (
-          <Pressable key={it.key} onPress={it.onPress} style={({ pressed }) => [s.item, pressed && { opacity: 0.7 }]}>
-            <Text style={s.itemText}>{it.label}</Text>
-            {it.detail ? <Text style={{ color: C.dim, fontSize: 16, marginTop: 4 }}>{it.detail}</Text> : null}
-          </Pressable>
+        {tracks.length === 0 ? <Text style={s.empty}>Δεν υπάρχουν χρόνοι ακόμα.</Text> : null}
+        {days.map((d) => (
+          <View key={d.day}>
+            {/* Η μέρα σαν επικεφαλίδα */}
+            <Text style={{ color: C.dim, fontSize: 17, fontWeight: '700', marginTop: 14, marginBottom: 4 }}>
+              ── {dayTitle(d.day)} ──
+            </Text>
+            {d.sessions.map((x) => (
+              <Pressable
+                key={x.id}
+                onPress={() => nav.push('Summary', { sessionId: x.id, fromHistory: true })}
+                style={({ pressed }) => [s.item, pressed && { opacity: 0.7 }]}
+              >
+                <Text style={s.itemText}>
+                  Session {x.number} · {hhmm(x.startedAt)}
+                  {x.direction === -1 ? '  ⇄' : ''}
+                </Text>
+                <Text style={{ color: C.dim, fontSize: 16, marginTop: 4 }}>
+                  {x.laps.length} γύροι · best {formatTime(bestLap(x).time)}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
         ))}
       </List>
-      <View>
-        <BigButton label="Πίσω" onPress={() => nav.pop()} />
-      </View>
+
+      <BigButton label="Πίσω" onPress={() => nav.pop()} />
     </Screen>
   );
 }
